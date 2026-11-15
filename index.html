@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tpz</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg">
+<meta name="theme-color" content="#1f2124">
+<style>
+:root{color-scheme:dark;--bg:#17181a;--ink:#e6e6e6;--sub:#9a9a9a;--bar:#1f2124;--line:#3a3c40;--field:#2a2c30;--acc:#f5b82e}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,"Noto Sans TC",sans-serif;background:var(--bg);color:var(--ink)}
+#top{position:sticky;top:0;z-index:5}
+header{display:grid;grid-template-columns:1fr minmax(0,420px) 1fr;gap:8px;align-items:center;padding:10px 14px;background:var(--bar);border-bottom:1px solid var(--line)}
+header h1{font-size:18px;margin:0}
+.hr{justify-self:end;display:flex;gap:8px}
+#arrBtn{display:inline-block}
+@media(max-width:640px){#arrBtn{display:none}}
+@media(max-width:640px){header{grid-template-columns:auto 1fr auto}}
+button{font:inherit;color:var(--ink);cursor:pointer;border:1px solid var(--line);background:var(--field);border-radius:8px;padding:6px 12px}
+button.pri{background:var(--acc);border-color:#e0a21a;color:#222;font-weight:700}
+button.danger{color:#ff7b6b}
+#search{width:100%;min-width:0;padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--field);color:var(--ink);font:inherit;text-align:center}
+#wall{position:relative;min-height:calc(100vh - 100px);overflow-x:hidden}
+#tabs{display:flex;gap:4px;padding:6px 14px 0;background:var(--bar);border-bottom:1px solid var(--line);overflow-x:auto;white-space:nowrap}
+#tabs button{border-radius:8px 8px 0 0;border-bottom:none;background:var(--field);max-width:160px;overflow:hidden;text-overflow:ellipsis;flex:none}
+#tabs button.on{background:#383c42;color:#e6e6e6;font-weight:700}
+#tabs button.add{background:var(--bar)}
+#tabs button[data-id]{touch-action:none;user-select:none;-webkit-user-select:none}
+#tabs button.tdrag{opacity:.6}
+#tabs button.over{outline:2px solid var(--acc);outline-offset:-2px}
+.dlg select{padding:6px;border:1px solid var(--line);border-radius:8px;background:var(--field);color:var(--ink);font:inherit}
+.note{color:#d6d6d6;box-shadow:none;border:1px solid rgba(255,255,255,.07);position:absolute;border-radius:4px 4px 14px 4px;padding:12px 12px 10px;box-shadow:2px 4px 8px rgba(0,0,0,.18);cursor:grab;display:flex;flex-direction:column;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
+.note.drag{cursor:grabbing;box-shadow:6px 10px 20px rgba(0,0,0,.3);transform:rotate(1.5deg);z-index:999}
+.note .grip{position:absolute;right:0;bottom:0;width:26px;height:26px;cursor:nwse-resize;touch-action:none;opacity:.55;
+  background:linear-gradient(135deg,transparent 55%,#ccc 55%,#ccc 63%,transparent 63%,transparent 73%,#ccc 73%,#ccc 81%,transparent 81%)}
+.note h3{margin:0 0 6px;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.note .body{flex:1;overflow:hidden;white-space:pre-wrap;word-break:break-word;font-size:14px;line-height:1.5;position:relative}
+.note.more .body::after{content:"";position:absolute;left:0;right:0;bottom:0;height:34px;background:linear-gradient(transparent,var(--c))}
+.note .tip{display:none;font-size:12px;color:#ddd;font-weight:700;padding-top:4px}
+.note.more .tip{display:block}
+.empty{text-align:center;color:var(--sub);padding:60px 0}
+.mask{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:20;padding:14px}
+.mask.on{display:flex}
+.dlg{background:var(--bar);border:1px solid var(--line);border-radius:12px;padding:16px;width:min(560px,100%);max-height:90vh;overflow:auto;display:flex;flex-direction:column;gap:10px}
+.dlg input[type=text],.dlg textarea{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--field);color:var(--ink);font:inherit}
+.dlg textarea{min-height:240px;resize:vertical;line-height:1.5}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.sw{width:28px;height:28px;border-radius:50%;border:2px solid transparent;padding:0}
+.sw.on{border-color:#fff}
+.seg button.on{background:#e6e6e6;color:#222}
+.sp{flex:1}
+.cnt{font-size:12px;color:var(--sub)}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#e6e6e6;color:#222;padding:8px 16px;border-radius:20px;display:none;z-index:30}
+.hl{display:flex;align-items:center;gap:8px;min-width:0}
+#drawerBtn,#fab{display:none}
+#dmask{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:14;display:none}
+#dmask.on{display:block}
+#drawer{position:fixed;top:0;left:0;bottom:0;width:260px;max-width:80vw;background:var(--bar);border-right:1px solid var(--line);z-index:15;transform:translateX(-100%);transition:transform .2s;display:none;flex-direction:column;gap:8px;padding:14px}
+#drawer.on{transform:none}
+#dlist{display:flex;flex-direction:column;gap:6px;overflow:auto;flex:1}
+#dlist button{text-align:left;padding:10px 12px;touch-action:none;user-select:none;-webkit-user-select:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#dlist button.on{background:#383c42;font-weight:700}
+#dlist button.tdrag{opacity:.6}
+#dlist button.over{outline:2px solid var(--acc);outline-offset:-2px}
+.note.over{outline:2px solid var(--acc);outline-offset:-2px}
+.note.lift{z-index:50;box-shadow:0 10px 24px rgba(0,0,0,.5)}
+#wall.m{display:flex;flex-direction:column;gap:10px;padding:12px;min-height:calc(100vh - 60px)}
+#wall.m .note{position:relative;width:auto;max-height:220px;min-height:64px;touch-action:pan-y;cursor:pointer;-webkit-touch-callout:none}
+#wall.m .note .grip{display:none}
+#nmList{display:flex;flex-direction:column;gap:8px}
+@media(max-width:640px){
+  #drawerBtn{display:block;padding:6px 10px}
+  #drawer{display:flex}
+  #title{max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;font-size:16px}
+  #tabs{display:none}
+  #fab{display:flex;position:fixed;right:18px;bottom:calc(18px + env(safe-area-inset-bottom));width:52px;height:52px;border-radius:50%;background:var(--acc);border:0;color:#222;font-size:28px;line-height:1;align-items:center;justify-content:center;padding:0;z-index:8;box-shadow:0 4px 12px rgba(0,0,0,.5)}
+}
+</style>
+</head>
+<body>
+<div id="top"><header>
+  <div class="hl"><button id="drawerBtn" title="頁面">☰</button><h1 id="title">📌 Tpz</h1></div>
+  <input id="search" type="search" placeholder="搜尋…">
+  <div class="hr"><button id="arrBtn" title="整理貼紙">整理</button><button id="menuBtn">⋯</button></div>
+</header><nav id="tabs"></nav></div>
+<main id="wall"></main>
+<button id="fab" title="新增貼紙">＋</button>
+<div id="dmask"></div>
+<aside id="drawer">
+  <div class="cnt">頁面（拖曳可換順序）</div>
+  <div id="dlist"></div>
+  <button id="dadd">＋ 新增頁面</button>
+</aside>
+
+<div class="mask" id="noteMask">
+  <div class="dlg" style="width:min(340px,100%)">
+    <div class="cnt">移到哪一頁？（也可長按後拖到螢幕左邊緣，放在頁面上）</div>
+    <div id="nmList"></div>
+    <button id="nmClose">取消</button>
+  </div>
+</div>
+
+<div class="mask" id="editMask">
+  <div class="dlg">
+    <input type="text" id="fTitle" placeholder="標題（可留空）" maxlength="40">
+    <textarea id="fBody" placeholder="輸入內容…"></textarea>
+    <div class="cnt" id="cnt"></div>
+    <div class="row" id="colors"></div>
+    <div class="row">
+      <button class="danger" id="delBtn">刪除</button>
+      <span class="sp"></span>
+      <button id="cancelBtn">取消</button>
+      <button class="pri" id="saveBtn">儲存</button>
+    </div>
+  </div>
+</div>
+
+<div class="mask" id="pageMask">
+  <div class="dlg" style="width:min(340px,100%)">
+    <input type="text" id="pName" placeholder="頁籤名稱" maxlength="20">
+    <div class="row">
+      <button class="danger" id="pDel">刪除此頁</button>
+      <span class="sp"></span>
+      <button id="pCancel">取消</button>
+      <button class="pri" id="pSave">儲存</button>
+    </div>
+  </div>
+</div>
+
+<div class="mask" id="menuMask">
+  <div class="dlg" style="width:min(340px,100%)">
+    <button id="expBtn">匯出備份</button>
+    <button id="impBtn">匯入備份</button>
+    <input type="file" id="impFile" accept=".json,application/json" hidden>
+    <button id="closeMenu">關閉</button>
+  </div>
+</div>
+
+<div class="mask" id="askMask">
+  <div class="dlg" style="width:min(340px,100%)">
+    <div id="askMsg"></div>
+    <div class="row"><span class="sp"></span><button id="askNo">取消</button><button class="pri" id="askYes">確定</button></div>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script>
+const KEY = "stickywall.v1";
+const COLORS = ["#413d24","#443422","#43282f","#213440","#273b2a","#342b44"]; // 低飽和、接近背景的暗色
+const OLD_PALETTES = [["#fff59d","#ffcc80","#f8bbd0","#b3e5fc","#c8e6c9","#d1c4e9"], ["#6b6430","#6e4f2c","#6a3a4a","#2f5368","#3c5a3d","#50416b"], ["#2f2c1a","#312518","#301d22","#18252e","#1c2a1e","#251f31"]]; // 舊色盤，載入／匯入時自動換成對應的新色
+const fixColor = c => { for (const p of OLD_PALETTES) { const i = p.indexOf(c); if (i >= 0) return COLORS[i]; } return c; };
+const MAX_CHARS = 2000;
+const MINW = 110, MINH = 90, MAXW = 700, MAXH = 700;
+let notes = [];
+try { notes = JSON.parse(localStorage.getItem(KEY)) || []; } catch (e) { notes = []; }
+const PKEY = "stickywall.pages.v1";
+let pages = [{id:"p1", name:"頁 1"}], curPage = "p1";
+try { const o = JSON.parse(localStorage.getItem(PKEY)); if (o && Array.isArray(o.pages) && o.pages.length) { pages = o.pages; curPage = o.cur; } } catch (e) {}
+if (!pages.some(p => p.id === curPage)) curPage = pages[0].id;
+for (const n of notes) { n.color = fixColor(n.color); if (!pages.some(p => p.id === n.page)) n.page = pages[0].id; } // 舊資料歸到第一頁、舊色換新色
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(notes)); localStorage.setItem(PKEY, JSON.stringify({pages, cur: curPage})); } catch (e) { toast("儲存失敗（儲存空間不足或被封鎖）"); } };
+const $ = id => document.getElementById(id);
+const mq = window.matchMedia("(max-width:640px)"), isMobile = () => mq.matches; // 手機：抽屜 + 單欄排列
+function toast(t){const e=$("toast");e.textContent=t;e.style.display="block";clearTimeout(toast.t);toast.t=setTimeout(()=>e.style.display="none",2200);}
+function ask(msg){return new Promise(r=>{$("askMsg").textContent=msg;$("askMask").classList.add("on");
+  const done=v=>{$("askMask").classList.remove("on");$("askYes").onclick=$("askNo").onclick=null;r(v);};
+  $("askYes").onclick=()=>done(true);$("askNo").onclick=()=>done(false);});}
+
+const DIM = {1:[150,150],2:[240,220],3:[330,300]};
+const dims = n => [typeof n.w === "number" ? n.w : DIM[n.size][0], typeof n.h === "number" ? n.h : DIM[n.size][1]]; // 自訂尺寸優先，否則用預設檔位
+function place(){ // 補上沒有位置的貼紙（舊資料）
+  let x = 16, y = 16, rowH = 0; const W = $("wall").clientWidth || 900;
+  for (const n of notes) {
+    if (n.page !== curPage) continue;
+    if (typeof n.x === "number") continue;
+    const [w,h] = dims(n);
+    if (x + w > W - 8 && x > 16) { x = 16; y += rowH + 14; rowH = 0; }
+    n.x = x; n.y = y; x += w + 14; rowH = Math.max(rowH, h);
+  }
+}
+function render(){
+  place(); renderTabs();
+  const q = $("search").value.trim().toLowerCase();
+  const w = $("wall"); w.innerHTML = "";
+  const mob = isMobile(); w.classList.toggle("m", mob);
+  const list = notes.filter(n => n.page === curPage && (!q || (n.title+n.body).toLowerCase().includes(q)));
+  if (mob) { ensureOrd(curPage, "mo"); list.sort((a, b) => a.mo - b.mo); } // 手機只看自己的順序欄位 mo，不碰網頁的 x/y
+  if (!list.length) { w.innerHTML = '<div class="empty">'+(notes.some(n => n.page === curPage)?"找不到符合的貼紙":"還沒有貼紙，點一下空白處新增")+'</div>'; w.style.height=""; return; }
+  let maxY = 0;
+  for (const n of list) {
+    const d = document.createElement("div");
+    d.className = "note"; d.style.background = n.color; d.style.setProperty("--c", n.color); d.dataset.id = n.id;
+    const [nw,nh] = dims(n);
+    if (!mob) { // 網頁：自由擺放（手機單欄：寬度撐滿、高度自動）
+      d.style.width = nw + "px"; d.style.height = nh + "px";
+      d.style.left = Math.max(0, Math.min(n.x, w.clientWidth - nw)) + "px"; d.style.top = n.y + "px";
+      maxY = Math.max(maxY, n.y + nh);
+    }
+    d.innerHTML = '<h3></h3><div class="body"></div><div class="tip">… 點開看全部</div><div class="grip" title="拖曳調整大小"></div>';
+    d.querySelector("h3").textContent = n.title; if (!n.title) d.querySelector("h3").remove();
+    d.querySelector(".body").textContent = n.body;
+    if (mob) bindDragM(d, n); else { bindDrag(d, n); bindResize(d, n); }
+    w.appendChild(d);
+    markMore(d);
+  }
+  w.style.height = mob ? "" : Math.max(maxY + 60, window.innerHeight - 100) + "px";
+}
+// 內容被裁切（高度溢出）就標示可點開
+function markMore(d){ const b = d.querySelector(".body"); d.classList.remove("more"); if (b.scrollHeight > b.clientHeight + 2) d.classList.add("more"); }
+// 右下角把手：自由調整寬高
+function bindResize(d, n){
+  const g = d.querySelector(".grip"); let sx, sy, sw, sh;
+  g.onpointerdown = e => { e.preventDefault(); e.stopPropagation(); g.setPointerCapture(e.pointerId); sx = e.clientX; sy = e.clientY; sw = d.offsetWidth; sh = d.offsetHeight; };
+  g.onpointermove = e => {
+    if (!g.hasPointerCapture(e.pointerId)) return;
+    const maxw = Math.max(MINW, Math.min(MAXW, $("wall").clientWidth - parseFloat(d.style.left)));
+    n.w = Math.max(MINW, Math.min(maxw, Math.round(sw + e.clientX - sx)));
+    n.h = Math.max(MINH, Math.min(MAXH, Math.round(sh + e.clientY - sy)));
+    d.style.width = n.w + "px"; d.style.height = n.h + "px"; markMore(d);
+  };
+  g.onpointerup = g.onpointercancel = e => { if (!g.hasPointerCapture(e.pointerId)) return; g.releasePointerCapture(e.pointerId); save(); render(); };
+  g.onclick = e => e.stopPropagation();
+}
+// 拖曳：移動超過 5px 才算拖曳，否則視為點擊（開啟編輯）
+function bindDrag(d, n){
+  d.onpointerdown = e => {
+    if (e.button || e.target.classList.contains("grip")) return;
+    const sx = e.clientX, sy = e.clientY, ox = parseFloat(d.style.left), oy = parseFloat(d.style.top);
+    const wall = $("wall"); let moved = false, drop = null;
+    d.setPointerCapture(e.pointerId);
+    d.onpointermove = ev => {
+      const dx = ev.clientX - sx, dy = ev.clientY - sy;
+      if (!moved && Math.hypot(dx, dy) < 5) return;
+      if (!moved) { moved = true; d.classList.add("drag"); }
+      drop = tabAt(ev.clientX, ev.clientY, curPage); markTab(drop); // 拖到別的頁籤上放開 = 移到那一頁
+      const [nw] = dims(n);
+      d.style.left = Math.max(0, Math.min(ox + dx, wall.clientWidth - nw)) + "px";
+      d.style.top = Math.max(0, oy + dy) + "px";
+    };
+    d.onpointerup = d.onpointercancel = () => {
+      d.onpointermove = d.onpointerup = d.onpointercancel = null;
+      markTab(null);
+      if (!moved) { openEdit(n.id); return; }
+      if (drop) { moveToPage(n, drop); return; }
+      n.x = parseFloat(d.style.left); n.y = parseFloat(d.style.top);
+      notes = notes.filter(x => x !== n); notes.push(n); // 最後拖的放最上層
+      save(); render();
+    };
+  };
+}
+
+// ===== 手機：單欄排列 =====
+// 點一下＝編輯；長按（0.45 秒）貼紙浮起 → 不動放開＝選單（移到別頁）；拖到另一張上＝兩張交換位置；
+// 拖到螢幕左邊緣＝滑出抽屜，放在某個頁面上＝移到那一頁；一般滑動＝捲動頁面
+function markNote(id){ $("wall").querySelectorAll(".note").forEach(o => o.classList.toggle("over", !!id && o.dataset.id === id)); }
+// 手機專用順序欄位 mo：還沒有 mo 的貼紙（網頁建立的、舊資料）依 y、x 接在已有的後面，之後只改 mo、不動 x/y
+function ensureOrd(pageId, key){
+  const pg = notes.filter(n => n.page === pageId);
+  const have = pg.filter(n => typeof n[key] === "number").sort((a, b) => a[key] - b[key]);
+  const lack = pg.filter(n => typeof n[key] !== "number").sort((a, b) => (a.y - b.y) || (a.x - b.x));
+  have.concat(lack).forEach((n, i) => n[key] = i);
+}
+// 網頁「整理」：把目前頁面的貼紙依現有位置（先上後下、先左後右）重新排成整齊的列，超過寬度就換行
+async function arrange(){
+  const list = notes.filter(n => n.page === curPage); if (!list.length) return;
+  if (!await ask("整理會重新排列這一頁所有貼紙的位置，確定？")) return;
+  const W = $("wall").clientWidth || 900;
+  list.sort((a, b) => (Math.round(a.y / 60) - Math.round(b.y / 60)) || (a.x - b.x));
+  let x = 16, y = 16, rowH = 0;
+  for (const n of list) {
+    const [w, h] = dims(n), ww = Math.min(w, W - 32);
+    if (x + ww > W - 8 && x > 16) { x = 16; y += rowH + 14; rowH = 0; }
+    n.x = x; n.y = y; x += ww + 14; rowH = Math.max(rowH, h);
+  }
+  save(); render(); toast("已整理");
+}
+function swapNotes(n, id){
+  const o = notes.find(x => x.id === id); if (!o) return;
+  [n.mo, o.mo] = [o.mo, n.mo]; // 只交換手機順序，電腦版排版不變
+  save(); render();
+}
+function bindDragM(d, n){
+  d.oncontextmenu = e => e.preventDefault();
+  d.addEventListener("touchmove", ev => { if (d._lp) ev.preventDefault(); }, {passive:false}); // 浮起後不讓頁面跟著捲
+  d.onpointerdown = e => {
+    if (e.button) return;
+    const sx = e.clientX, sy = e.clientY; let moved = false, scrolled = false, target = null, pageTarget = null, opened = false;
+    d._lp = false;
+    const timer = setTimeout(() => {
+      d._lp = true; d.classList.add("lift"); try { d.setPointerCapture(e.pointerId); } catch (_) {}
+      const r = d.getBoundingClientRect(); d.style.transformOrigin = (sx - r.left) + "px " + (sy - r.top) + "px"; // 縮放時以手指按住的點為中心
+      if (navigator.vibrate) navigator.vibrate(15);
+    }, 450);
+    const end = () => { clearTimeout(timer); d._lp = false; d.classList.remove("lift"); d.style.transform = d.style.transformOrigin = ""; d.onpointermove = d.onpointerup = d.onpointercancel = null; markNote(null); markTab(null); if (opened) closeDrawer(); };
+    d.onpointermove = ev => {
+      const dx = ev.clientX - sx, dy = ev.clientY - sy;
+      if (!d._lp) { if (Math.hypot(dx, dy) > 8) { scrolled = true; clearTimeout(timer); } return; }
+      if (!moved && Math.hypot(dx, dy) < 6) return;
+      moved = true;
+      if (!drawerOpen() && ev.clientX < 24 && dx < -30) { openDrawer(); opened = true; } // 要真的往左拖到邊緣才開，避免從左邊按下就誤觸 // 拖到螢幕左邊緣 → 自動滑出頁面抽屜
+      d.style.transform = "translate(" + dx + "px," + dy + "px) scale(" + (drawerOpen() ? 0.45 : 1.02) + ")";
+      const overDrawer = drawerOpen() && ev.clientX < $("drawer").offsetWidth;
+      pageTarget = overDrawer ? tabAt(ev.clientX, ev.clientY, curPage) : null; markTab(pageTarget); // 放到抽屜裡的頁面上 = 移到那一頁
+      target = null;
+      if (!overDrawer) for (const o of $("wall").querySelectorAll(".note")) {
+        if (o === d) continue;
+        const r = o.getBoundingClientRect();
+        if (Math.abs(ev.clientY - (r.top + r.bottom) / 2) <= (r.bottom - r.top) * 0.25) { target = o.dataset.id; break; } // 只有停在對方正中間才算交換目標
+      }
+      markNote(target);
+    };
+    d.onpointerup = () => {
+      const lp = d._lp, wasMoved = moved, t = target, pt = pageTarget; end();
+      if (!lp) { if (!scrolled) openEdit(n.id); return; }
+      if (!wasMoved) { openNoteMenu(n); return; }
+      if (pt) { moveToPage(n, pt); return; }
+      if (t) swapNotes(n, t);
+    };
+    d.onpointercancel = end;
+  };
+}
+function openNoteMenu(n){
+  const l = $("nmList"); l.innerHTML = "";
+  const others = pages.filter(p => p.id !== n.page);
+  if (!others.length) { const s = document.createElement("div"); s.className = "cnt"; s.textContent = "沒有其他頁面"; l.appendChild(s); }
+  for (const p of others) {
+    const b = document.createElement("button"); b.textContent = "移到「" + p.name + "」";
+    b.onclick = () => { $("noteMask").classList.remove("on"); moveToPage(n, p.id); };
+    l.appendChild(b);
+  }
+  $("noteMask").classList.add("on");
+}
+$("nmClose").onclick = () => $("noteMask").classList.remove("on");
+// 抽屜
+const drawerOpen = () => $("drawer").classList.contains("on");
+function openDrawer(){ $("drawer").classList.add("on"); $("dmask").classList.add("on"); }
+function closeDrawer(){ $("drawer").classList.remove("on"); $("dmask").classList.remove("on"); }
+$("drawerBtn").onclick = openDrawer;
+$("dmask").onclick = closeDrawer;
+$("title").onclick = () => { if (isMobile()) openPage(); };
+$("dadd").onclick = () => addPage();
+$("fab").onclick = () => { openEdit(null); cur.x = 16; cur.y = bottomY(curPage, null); }; // 手機新增：放在最後面
+function bottomY(pageId, except){
+  let y = 16;
+  for (const o of notes) if (o !== except && o.page === pageId && typeof o.y === "number") y = Math.max(y, o.y + dims(o)[1] + 14);
+  return y;
+}
+
+let cur = null; // 編輯中的貼紙
+function openEdit(id){
+  const n = notes.find(x => x.id === id);
+  cur = n ? {...n} : {id:null,title:"",body:"",color:COLORS[0],size:1,w:DIM[1][0],h:DIM[1][1],page:curPage};
+  $("fTitle").value = cur.title; $("fBody").value = cur.body;
+  $("delBtn").style.display = n ? "" : "none";
+  paint(); $("editMask").classList.add("on");
+  if (!n) $("fBody").focus();
+}
+function paint(){
+  $("colors").innerHTML = "";
+  COLORS.forEach(c => { const b=document.createElement("button"); b.className="sw"+(c===cur.color?" on":""); b.style.background=c;
+    b.onclick=()=>{cur.color=c;paint();}; $("colors").appendChild(b); });
+  $("cnt").textContent = $("fBody").value.length + " / " + MAX_CHARS;
+}
+$("fBody").oninput = () => { if ($("fBody").value.length > MAX_CHARS) $("fBody").value = $("fBody").value.slice(0, MAX_CHARS); paint(); };
+$("fBody").maxLength = MAX_CHARS;
+// 點牆上的空白處新增貼紙（位置放在點擊處）；點到貼紙本身不會觸發
+$("wall").onclick = e => {
+  if (isMobile() || (e.target !== $("wall") && !e.target.classList.contains("empty"))) return;
+  const r = $("wall").getBoundingClientRect(), [w,h] = DIM[1];
+  openEdit(null);
+  cur.x = Math.max(0, Math.min(Math.round(e.clientX - r.left - w/2), $("wall").clientWidth - w));
+  cur.y = Math.max(0, Math.round(e.clientY - r.top - h/2));
+};
+// ESC 關閉最上層的彈出視窗
+document.addEventListener("keydown", e => {
+  if (e.key !== "Escape") return;
+  const m = [...document.querySelectorAll(".mask.on")].pop(); if (!m) { closeDrawer(); return; }
+  if (m.id === "askMask") $("askNo").click(); else m.classList.remove("on");
+});
+$("cancelBtn").onclick = () => $("editMask").classList.remove("on");
+$("saveBtn").onclick = () => {
+  cur.title = $("fTitle").value.trim(); cur.body = $("fBody").value;
+  if (!cur.title && !cur.body.trim()) { toast("內容不能是空的"); return; }
+  if (cur.id) notes = notes.map(x => x.id === cur.id ? cur : x);
+  else { cur.id = Date.now().toString(36) + Math.random().toString(36).slice(2,6); if (typeof cur.x !== "number") { cur.x = 16; cur.y = 16; } notes.push(cur); }
+  save(); render(); $("editMask").classList.remove("on");
+};
+$("delBtn").onclick = async () => {
+  if (!await ask("確定刪除這張貼紙？")) return;
+  notes = notes.filter(x => x.id !== cur.id); save(); render(); $("editMask").classList.remove("on");
+};
+$("search").oninput = render;
+$("arrBtn").onclick = arrange;
+$("menuBtn").onclick =() => $("menuMask").classList.add("on");
+$("closeMenu").onclick = () => $("menuMask").classList.remove("on");
+$("expBtn").onclick = () => {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([JSON.stringify({pages, notes},null,1)],{type:"application/json"}));
+  a.download = "Tpz備份.json"; a.click(); URL.revokeObjectURL(a.href);
+};
+$("impBtn").onclick = () => $("impFile").click();
+$("impFile").onchange = async e => {
+  const f = e.target.files[0]; e.target.value = ""; if (!f) return;
+  try {
+    const data = JSON.parse(await f.text());
+    const arr = Array.isArray(data) ? data : data.notes; // 相容舊備份（純陣列）
+    if (!Array.isArray(arr)) throw 0;
+    let newPages = Array.isArray(data.pages) ? data.pages.filter(p => p && p.id).map(p => ({id:String(p.id), name:String(p.name||"頁").slice(0,20)})) : [];
+    if (!newPages.length) newPages = [{id:"p1", name:"頁 1"}];
+    const pageIds = new Set(newPages.map(p => p.id));
+    if (!await ask("匯入會取代目前全部貼紙，確定？")) return;
+    notes = arr.filter(x => x && typeof x.body === "string").map(x => ({
+      id: String(x.id || Date.now()+Math.random()), title: String(x.title||""), body: x.body.slice(0,MAX_CHARS),
+      color: COLORS.includes(fixColor(x.color))?fixColor(x.color):COLORS[0], size: [1,2,3].includes(x.size)?x.size:1, w: typeof x.w==="number"?Math.max(MINW,Math.min(MAXW,x.w)):undefined, h: typeof x.h==="number"?Math.max(MINH,Math.min(MAXH,x.h)):undefined, page: pageIds.has(x.page)?x.page:newPages[0].id, mo: typeof x.mo==="number"?x.mo:undefined, x: typeof x.x==="number"?x.x:undefined, y: typeof x.y==="number"?x.y:undefined }));
+    pages = newPages; curPage = pages[0].id;
+    save(); render(); $("menuMask").classList.remove("on"); toast("已匯入");
+  } catch (_) { toast("檔案格式不正確"); }
+};
+// 頁籤命中測試：座標落在哪個頁籤上（排除 skipId）
+function tabAt(x, y, skipId){
+  for (const b of document.querySelectorAll("#tabs button[data-id], #dlist button[data-id]")) { // 看不見的那組 rect 為 0，不會命中
+    if (b.dataset.id === skipId) continue;
+    const r = b.getBoundingClientRect();
+    if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return b.dataset.id;
+  }
+  return null;
+}
+function markTab(id){ document.querySelectorAll("#tabs button, #dlist button").forEach(b => b.classList.toggle("over", !!id && b.dataset.id === id)); }
+function moveToPage(n, id){
+  let y = 16;
+  for (const o of notes) if (o !== n && o.page === id && typeof o.y === "number") y = Math.max(y, o.y + dims(o)[1] + 14); // 放在目標頁現有貼紙的下方
+  n.page = id; n.x = 16; n.y = y; delete n.mo; // 網頁放在目標頁現有貼紙下方，手機排在最後
+  notes = notes.filter(x => x !== n); notes.push(n);
+  save(); render(); toast("已移到「" + pages.find(p => p.id === id).name + "」");
+}
+// 拖曳頁籤換順序：超過 6px 才算拖曳，否則視為點擊
+let tabMoved = false;
+function bindTabDrag(b, p){
+  b.onpointerdown = e => {
+    if (e.button) return;
+    const sx = e.clientX, sy = e.clientY; let moved = false, target = null;
+    b.setPointerCapture(e.pointerId);
+    b.onpointermove = ev => {
+      if (!moved && Math.hypot(ev.clientX - sx, ev.clientY - sy) < 6) return;
+      moved = true; b.classList.add("tdrag");
+      target = tabAt(ev.clientX, ev.clientY, p.id); markTab(target);
+    };
+    b.onpointerup = b.onpointercancel = () => {
+      b.onpointermove = b.onpointerup = b.onpointercancel = null;
+      if (!moved) return;
+      tabMoved = true; setTimeout(() => tabMoved = false, 80); // 擋掉拖曳結束後緊接的 click
+      if (target) { const from = pages.findIndex(x => x.id === p.id), to = pages.findIndex(x => x.id === target); const [m] = pages.splice(from, 1); pages.splice(to, 0, m); save(); }
+      renderTabs();
+    };
+  };
+}
+function pickPage(p){
+  if (tabMoved) return;
+  if (p.id === curPage) { if (drawerOpen()) closeDrawer(); else openPage(); }
+  else { curPage = p.id; save(); closeDrawer(); render(); window.scrollTo(0,0); }
+}
+function addPage(){
+  const id = "p" + Date.now().toString(36); pages.push({id, name: "頁 " + (pages.length + 1)}); curPage = id;
+  save(); closeDrawer(); render(); window.scrollTo(0,0);
+}
+function renderTabs(){
+  const t = $("tabs"), dl = $("dlist"); t.innerHTML = ""; dl.innerHTML = "";
+  for (const p of pages) for (const box of [t, dl]) { // 電腦橫向頁籤與手機抽屜清單用同一份資料
+    const b = document.createElement("button"); b.textContent = p.name; b.className = p.id === curPage ? "on" : ""; b.dataset.id = p.id;
+    bindTabDrag(b, p);
+    b.onclick = () => pickPage(p);
+    box.appendChild(b);
+  }
+  const a = document.createElement("button"); a.textContent = "＋"; a.className = "add"; a.title = "新增頁籤";
+  a.onclick = addPage;
+  t.appendChild(a);
+  $("title").textContent = isMobile() ? pages.find(p => p.id === curPage).name : "📌 Tpz";
+}
+function openPage(){ $("pName").value = pages.find(p => p.id === curPage).name; $("pDel").style.display = pages.length > 1 ? "" : "none"; $("pageMask").classList.add("on"); }
+$("pCancel").onclick = () => $("pageMask").classList.remove("on");
+$("pSave").onclick = () => { const v = $("pName").value.trim(); if (!v) { toast("名稱不能是空的"); return; }
+  pages.find(p => p.id === curPage).name = v; save(); render(); $("pageMask").classList.remove("on"); };
+$("pDel").onclick = async () => {
+  const cnt = notes.filter(n => n.page === curPage).length;
+  if (!await ask("刪除此頁籤" + (cnt ? "及其中 " + cnt + " 張貼紙" : "") + "，確定？")) return;
+  notes = notes.filter(n => n.page !== curPage); pages = pages.filter(p => p.id !== curPage); curPage = pages[0].id;
+  save(); render(); $("pageMask").classList.remove("on");
+};
+let lastW = window.innerWidth; // 只在寬度改變時重畫（手機網址列伸縮只會改高度，重畫會打斷長按拖曳）
+window.addEventListener("resize", () => { if (window.innerWidth !== lastW) { lastW = window.innerWidth; render(); } });
+mq.addEventListener("change", () => { closeDrawer(); render(); });
+render();
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
+</script>
+</body>
+</html>
